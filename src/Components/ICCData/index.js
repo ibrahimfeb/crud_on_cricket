@@ -35,7 +35,7 @@ const ICCData = () => {
     return (
       <Stack mt={"10px"}>
         <Center>
-          <Heading size={"sm"}>ICC Men's T20 World Cup,Australia,2022</Heading>
+          <Heading size={"sm"}>ICC Men's ODI Cup,India,2023</Heading>
         </Center>
         <TableContainer>
           <Table variant="simple">

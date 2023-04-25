@@ -9,12 +9,12 @@ import { ApolloProvider, ApolloClient, InMemoryCache } from "@apollo/client";
 //Initialize Apollo Client for hasura connection
 
 const client = new ApolloClient({
-  uri: "https://gql-practice-01.hasura.app/v1/graphql",
+  uri: "https://deemo-project.hasura.app/v1/graphql",
   cache: new InMemoryCache({ addTypename: false }),
   headers: {
     "Access-Control-Allow-Origin": "*",
     "X-Hasura-Admin-Secret":
-      "TDMpN0hSk0sIb7JWNmVsjOMNvC7IdIpE7Jm3hkDngjeIjoNOefd9XpSl9TkXn22j",
+      "0jbjuUOIdjs04p7Ae3fSv5PXakTdYk1qj9hFXuN5MZc08VngyIfHiKfoirTMI4eL",
   },
 });
 const root = ReactDOM.createRoot(document.getElementById("root"));
