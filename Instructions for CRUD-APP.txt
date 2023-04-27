@@ -1,0 +1,597 @@
+1- 	npx create-react-app my_app
+
+2-	create table and it's fields into database
+
+3-	install some important packages
+	npm install @apollo/client graphql
+	npm i @chakra-ui/react
+	npm i @chakra-ui/icons
+	npm i react-hook-form
+	npm i @hookform/resolvers
+	npm i yup
+	
+	
+
+4-	setup index.js 
+	import { ChakraProvider } from '@chakra-ui/react';
+	import { ApolloProvider } from '@apollo/client';
+	import { ApolloClient } from '@apollo/client';
+	import { InMemoryCache } from '@apollo/client';
+
+	//Initialize Apollo Client for hasura connection
+
+const client = new ApolloClient({
+  uri: "https://gql-practice-01.hasura.app/v1/graphql",
+  cache: new InMemoryCache({ addTypename: false }),
+  headers: {
+    "Access-Control-Allow-Origin": "*",
+    "X-Hasura-Admin-Secret":
+      "TDMpN0hSk0sIb7JWNmVsjOMNvC7IdIpE7Jm3hkDngjeIjoNOefd9XpSl9TkXn22j",
+  },
+});
+
+  <React.StrictMode>
+    <ChakraProvider>
+      <ApolloProvider client={client}>
+        <App />
+      </ApolloProvider>
+    </ChakraProvider>
+  </React.StrictMode>
+
+5-	setup App.js
+
+import React from "react";
+import ReadGitCommand from "./Components/ReadGitCommand";
+
+const App = () => {
+  return (
+    <div>
+      <ReadGitCommand />
+    </div>
+  );
+};
+
+export default App;
+
+6-	ReadGitCommand.js
+
+import {
+  Stack,
+  Text,
+  Box,
+  Flex,
+  Heading,
+  Button,
+  useColorMode,
+} from "@chakra-ui/react";
+import { React, useState } from "react";
+import { SunIcon, MoonIcon } from "@chakra-ui/icons";
+
+const ReadGitCommand = () => {
+  const { colorMode, toggleColorMode } = useColorMode();
+
+  const RenderedReadGitCommand = () => {};
+  return (
+    <Box w="90%" m="auto" maxW="1200">
+      <Flex
+        w="full"
+        my={5}
+        alignItems="center"
+        justifyContent="flex-start"
+        as="header"
+      >
+        <Heading mr="auto" size={{ base: "sm", md: "md" }}>
+          Customers
+        </Heading>
+        <Button
+          size={{ base: "xs", md: "md" }}
+          mr={2}
+          onClick={toggleColorMode}
+        >
+          {colorMode === "dark" ? <SunIcon /> : <MoonIcon />}
+        </Button>
+        {/* <InsertGitCommandModal/> */}
+      </Flex>
+      {<RenderedReadGitCommand />}
+    </Box>
+  );
+};
+
+export default ReadGitCommand;
+
+7-	RenderedReadGitCommand
+
+import { GET_GIT_COMMANDS } from "../../GraphQL/Queries";
+import { useQuery } from "@apollo/client";
+
+const RenderedReadGitCommand = ()=>{
+ const { loading, error, data } = useQuery(GET_GIT_COMMANDS);
+
+    if (loading) return <Text>Loading...</Text>;
+    if (error) return <Text>Error :(</Text>;
+
+ return (
+      <Stack>
+        <Center>
+          <Heading size={"sm"}>Important Git Commands</Heading>
+        </Center>
+        <TableContainer>
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>Git Command</Th>
+                <Th>Description</Th>
+                <Th>Action</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {data
+                ? data.git_commands.map(({ id, command, description }) => (
+                    <Tr>
+                      <Td>{command}</Td>
+                      <Td>{description}</Td>
+                    </Tr>
+                  ))
+                : ""}
+            </Tbody>
+          </Table>
+        </TableContainer>
+      </Stack>
+    );
+}
+
+8-	InsertGitCommandModal
+
+import {
+  Button,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalBody,
+  ModalContent,
+  ModalCloseButton,
+  ModalHeader,
+  Flex,
+  SimpleGrid,
+  Input,
+  useToast,
+  FormControl,
+  FormLabel,
+} from "@chakra-ui/react";
+import { React, useState } from "react";
+import { INSERT_GIT_COMMAND } from "../../../GraphQL/Mutations";
+import { GET_GIT_COMMANDS } from "../../../GraphQL/Queries";
+import { useMutation, useQuery } from "@apollo/client";
+
+const InsertGitCommandModal = () => {
+  const [gitCommand, setGitCommand] = useState("");
+  const [gitDescription, setGitDescription] = useState("");
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { loading, error, data, refetch } = useQuery(GET_GIT_COMMANDS);
+  const toast = useToast();
+
+  // Insert
+  const [addGit, { loading: insertLoading }] = useMutation(INSERT_GIT_COMMAND, {
+    variables: {
+      command: gitCommand,
+      description: gitDescription,
+    },
+    onCompleted(res) {
+      console.log(res);
+      toast({
+        title: "Record Added",
+        description: "Record Added Succefully.",
+        status: "success",
+        duration: 9000,
+        inClosable: true,
+      });
+      refetch();
+      setGitCommand("");
+      setGitDescription("");
+    },
+
+    onError(error) {
+      console.log(error);
+      toast({
+        title: "Something Went Wrong.",
+        description: "Fail to add.",
+        status: "error",
+        duration: 9000,
+        isClosable: true,
+      });
+    },
+  });
+
+  // for checking purpose
+  const addNewData = () => {
+    console.log({ gitCommand });
+    console.log({ gitDescription });
+    addGit();
+  };
+
+  return (
+    <>
+      <Button
+        onClick={onOpen}
+        size={{ base: "xs", md: "md" }}
+        p={1}
+        w="fit-content"
+        variant={"outline"}
+      >
+        Add New Command
+      </Button>
+
+      {/* Insert Modal */}
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Add New Command</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <SimpleGrid width="full" columns={1} columnGap={3} rowGap={6}>
+              <Flex justifyContent={"center"} mt={"20px"} alignItems={"center"}>
+                <FormControl w={"300px"}>
+                  {/* Fields */}
+                  <FormLabel>
+                    Command
+                    <Input
+                      value={gitCommand}
+                      onChange={(e) => setGitCommand(e.target.value)}
+                    />
+                  </FormLabel>
+                  <FormLabel>
+                    Description
+                    <Input
+                      value={gitDescription}
+                      onChange={(e) => setGitDescription(e.target.value)}
+                    />
+                  </FormLabel>
+                  {/* End Fields */}
+
+                  <Flex mt={3} ml="auto">
+                    <Button
+                      onClick={addNewData}
+                      bg={"blue.300"}
+                      color={"white"}
+                      insertLoading={loading}
+                    >
+                      Submit
+                    </Button>
+                    <Button variant="ghost" onClick={onClose}>
+                      Cancel
+                    </Button>
+                  </Flex>
+                </FormControl>
+              </Flex>
+            </SimpleGrid>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+      {/* End Insert Modal */}
+    </>
+  );
+};
+
+export default InsertGitCommandModal;
+
+
+
+9-	Update section
+
+import {
+  Flex,
+  Stack,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  useToast,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  SimpleGrid,
+} from "@chakra-ui/react";
+import { React, useState } from "react";
+import { EditIcon } from "@chakra-ui/icons";
+import { useMutation } from "@apollo/client";
+import { GET_GIT_COMMANDS } from "../../../GraphQL/Queries";
+import { UPDATE_GIT_COMMAND } from "../../../GraphQL/Mutations";
+
+const UpdateGitCommandModal = (props) => {
+  const [gitId, setGitId] = useState(props.id);
+  const [gitCommand, setGitCommand] = useState(props.command);
+  const [gitDescription, setGitDescription] = useState(props.description);
+  const toast = useToast();
+
+  const {
+    isOpen: isUpdateOpen,
+    onOpen: onUpdateOpen,
+    onClose: onUpdateClose,
+  } = useDisclosure();
+
+  const [updateGitCommand, { loading, error, reset }] =
+    useMutation(UPDATE_GIT_COMMAND);
+
+  const onUpdateHandler = (e) => {
+    e.preventDefault();
+    updateGitCommand({
+      variables: {
+        id: gitId,
+        command: gitCommand,
+        description: gitDescription,
+      },
+      onCompleted(res) {
+        console.log(res);
+        toast({
+          title: "Record Updated",
+          description: "Record Uppdated Succefully",
+          status: "success",
+          duration: "9000",
+          isClosable: true,
+        });
+      },
+      refetchQueries: [{ query: GET_GIT_COMMANDS }],
+    });
+    if (loading) {
+      console.log("Submitting");
+    } else if (error) {
+      toast({
+        title: `${error.message}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } else {
+      reset();
+      onUpdateClose();
+      toast({
+        title: `${props.command} Updated`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+  return (
+    <>
+      <Button
+        onClick={onUpdateOpen}
+        // bg="#294652"
+        // color="white"
+        size="md"
+        p={1}
+        w="fit-content"
+        variant={"ghost"}
+      >
+        <EditIcon />
+      </Button>
+
+      <Modal isOpen={isUpdateOpen} onClose={onUpdateClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Update Git Command</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <SimpleGrid width="full" columns={1} columnGap={3} rowGap={6}>
+              <Stack>
+                <form onSubmit={onUpdateHandler}>
+                  <FormControl>
+                    <FormLabel>Command</FormLabel>
+                    <Input
+                      value={gitCommand}
+                      onChange={(e) => setGitCommand(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Description</FormLabel>
+                    <Input
+                      value={gitDescription}
+                      onChange={(e) => setGitDescription(e.target.value)}
+                    />
+                  </FormControl>
+                  <Flex mt={3} ml="auto">
+                    <Button
+                      mr={2}
+                      colorScheme="blue"
+                      isLoading={loading}
+                      type="submit"
+                    >
+                      Update
+                    </Button>
+                    <Button variant="ghost" onClick={onUpdateClose}>
+                      Cancel
+                    </Button>
+                  </Flex>
+                </form>
+              </Stack>
+            </SimpleGrid>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+};
+
+export default UpdateGitCommandModal;
+
+10-	Delete Section
+
+import {
+  Box,
+  Button,
+  useToast,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogBody,
+  AlertDialogFooter,
+} from "@chakra-ui/react";
+import { React, useRef } from "react";
+import { useMutation } from "@apollo/client";
+import { DeleteIcon } from "@chakra-ui/icons";
+import { GET_GIT_COMMANDS } from "../../../GraphQL/Queries";
+import { DELETE_GIT_COMMAND } from "../../../GraphQL/Mutations";
+const DeleteGitCommand = (props) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [deleteCommand] = useMutation(DELETE_GIT_COMMAND);
+  const toast = useToast();
+
+  const cancelRef = useRef(null);
+
+  const onDeleteHandler = () => {
+    deleteCommand({
+      variables: {
+        id: props.id,
+      },
+      refetchQueries: [{ query: GET_GIT_COMMANDS }],
+    });
+
+    onClose();
+    toast({
+      title: `${props.command} Deleted.`,
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+  };
+
+  return (
+    <>
+      <Button
+        // colorScheme="red"
+        onClick={onOpen}
+        size="md"
+        p={1}
+        mb={0.5}
+        w="fit-content"
+        variant={'ghost'}
+      >
+        <DeleteIcon />
+      </Button>
+
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Command
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              Are you sure? You want to Delete {" "}
+              <Box
+                textTransform="capitalize"
+                display="inline"
+                fontWeight="bolder"
+              >
+                {props.command}
+              </Box>
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={onDeleteHandler} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
+  );
+};
+
+export default DeleteGitCommand;
+
+
+
+11-Loader.js
+
+import { Stack, Spinner, Flex } from "@chakra-ui/react";
+
+const Loader = () => {
+  return (
+    <Flex justify="center" align="center" minH="90vh" w="100%">
+      <Stack spacing={4} p={8} borderRadius="lg">
+        <Spinner size="xl" />
+      </Stack>
+    </Flex>
+  );
+};
+
+export default Loader;
+
+
+
+All GQL Quries
+
+1-Quries.js
+
+import { gql } from "@apollo/client";
+
+export const GET_GIT_COMMANDS = gql`
+  query get_git_commands {
+    git_commands(distinct_on: id) {
+      id
+      command
+      description
+    }
+  }
+`;
+
+2-Mutation.js
+
+import { gql } from "@apollo/client";
+
+export const INSERT_GIT_COMMAND = gql`
+  mutation insert_git_command($command: String!, $description: String!) {
+    insert_git_commands_one(
+      object: { command: $command, description: $description }
+    ) {
+      id
+    }
+  }
+`;
+
+export const UPDATE_GIT_COMMAND = gql`
+  mutation update_git_command(
+    $id: Int!
+    $command: String!
+    $description: String!
+  ) {
+    update_git_commands_by_pk(
+      pk_columns: { id: $id }
+      _set: { id: $id, command: $command, description: $description }
+    ) {
+      id
+    }
+  }
+`;
+
+export const DELETE_GIT_COMMAND = gql`
+  mutation delete_git_command($id: Int!) {
+    delete_git_commands_by_pk(id: $id) {
+      id
+    }
+  }
+`;
+
+
+
+
+
+
+
+
